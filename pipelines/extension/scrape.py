@@ -26,7 +26,6 @@ def get_weather():
 def get_menus():
     dining_halls = {
         "Whitman": 8,
-        "Wucox": 2,
         "Roma": 1,
         "Forbes": 3,
         "Center for Jewish Life": 5,
@@ -39,22 +38,35 @@ def get_menus():
         text = requests.get(url).text
         soup = BeautifulSoup(text, features="lxml")
         menus = soup.findAll("div", {"class" : "card mealCard"})
-        
         for menu in menus:
-            text = menu.text.replace("Nutrition", '').replace('\r', '')
-            items = [item.strip() for item in text.split("\n") if item.strip()]
-            subitems = {}
-            category = None
-            for i in range(1, len(items)):
-                if items[i][0] == '-':
-                    key = items[i].replace('-- ', '').replace(' --', '')
-                    subitems[key] = []
-                    category = key
-                else:
-                    subitems[category].append(items[i])
-            dhall_result[items[0]] = subitems
+            header_div = menu.select_one(".card-header")
+            card_header = header_div.find(string=True, recursive=False).strip()
+
+            # 2) Stations -> foods mapping
+            stations = {}
+            accordion = menu.select_one(".accordion.accordion-flush")
+
+            # Each .mealStation is followed by one or more .accordion-item(s)
+            # until the next .mealStation (or the end)
+            for station_div in accordion.select("div.mealStation"):
+                station_name = station_div.get_text(strip=True)
+                foods = []
+
+                # Walk forward through siblings until the next mealStation
+                for sib in station_div.find_next_siblings():
+                    classes = sib.get("class", [])
+                    if "mealStation" in classes:
+                        break  # next station reached
+                    if "accordion-item" in classes:
+                        title_el = sib.select_one(".title")
+                        if title_el:
+                            foods.append(title_el.get_text(strip=True))
+
+                stations[station_name] = foods
+
+            dhall_result[card_header] = stations
+
         result[dhall] = dhall_result
-    result["_id"] = "dhall"
     return result
 
 def get_prince():
