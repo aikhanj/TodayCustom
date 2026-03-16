@@ -1,4 +1,3 @@
-import Table from "react-bootstrap/Table";
 import { useState, useEffect } from "react";
 import Dropdown from "react-bootstrap/Dropdown";
 import React from "react";
@@ -115,40 +114,36 @@ function DHallTable() {
   }
 
   return (
-    <div className="dining-hall">
-      <Table variant="dark" borderless>
-        <tbody>
-          <tr className="centered">
-            <td>
-              <h3 className="bold">
-                What's for <mark>{meal}</mark>?
-              </h3>
-              <Dropdown
-                onSelect={(e) => {
-                  const dhall = e || DEFAULT_DHALL
-                  setCollege(dhall);
-                  mixpanel.trackEvent(EventTypes.DHALL_CHANGE, dhall)
-                }}
+    <div className="widget-card dining-hall">
+      <div className="widget-header centered">
+        <h3 className="bold" style={{ marginBottom: "12px" }}>
+          What's for <mark>{meal}</mark>?
+        </h3>
+        <Dropdown
+          onSelect={(e) => {
+            const dhall = e || DEFAULT_DHALL
+            setCollege(dhall);
+            mixpanel.trackEvent(EventTypes.DHALL_CHANGE, dhall)
+          }}
+        >
+          <Dropdown.Toggle className="dropdown">
+            {college}
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            {DINING_HALLS.map((diningHall) => (
+              <Dropdown.Item
+                key={diningHall.key}
+                eventKey={diningHall.key}
               >
-                <Dropdown.Toggle className="dropdown">
-                  {college}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  {DINING_HALLS.map((diningHall) => (
-                    <Dropdown.Item
-                      key={diningHall.key}
-                      eventKey={diningHall.key}
-                    >
-                      {diningHall.label}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown.Menu>
-              </Dropdown>
-            </td>
-          </tr>
-          {rows}
-        </tbody>
-      </Table>
+                {diningHall.label}
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      </div>
+      <div className="widget-content">
+        {rows}
+      </div>
     </div>
   );
 }

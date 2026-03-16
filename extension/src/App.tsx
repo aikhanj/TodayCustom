@@ -1,11 +1,8 @@
-// import Chat from "./components/Chat";
-import "bootstrap/dist/css/bootstrap.min.css";
 import SneakyLinksTable from "./components/SneakyLinks";
 import DHallTable from "./components/DiningHalls";
 import Name from "./components/Name";
 import StudyMode from "./components/StudyMode";
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col } from "react-bootstrap";
 import { useTime } from "./context/TimeContext";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Carousel from "./components/Carousel";
@@ -32,48 +29,36 @@ function App() {
   };
 
   return (
-    <Container fluid className="m-0">
-      <div className="App">
-        {/* Top-right StudyMode Button */}
-        <div className="study-mode-top-right">
-          <StudyMode toggleWidgets={toggleWidgets} />
-        </div>
-
-        {showWidgets && (
-          <Row
-            className="name-row"
-            style={{ zIndex: 10, position: "relative" }}
-          >
-            <Col>
-              <h1 className="centered greeting">
-                Good {time.timeOfDay} <Name />
-              </h1>
-              <h1 className="centered date">{time.dateString}</h1>
-            </Col>
-          </Row>
-        )}
-
-        {showWidgets && (
-          <Row className="gx-5" style={{ zIndex: 10, position: "relative" }}>
-            <Col>
-              <DHallTable />
-            </Col>
-            <Col>
-              <Row className="my-4">
-                <WeatherTable />
-                {/* <Chat /> */}
-              </Row>
-              <Row className="my-4">
-                <SneakyLinksTable />
-              </Row>
-            </Col>
-            <Col>
-              <Carousel />
-            </Col>
-          </Row>
-        )}
+    <div className="App">
+      {/* Top-right StudyMode Button */}
+      <div className="study-mode-top-right">
+        <StudyMode toggleWidgets={toggleWidgets} />
       </div>
-    </Container>
+
+      {showWidgets && (
+        <div className="header-section">
+          <h1 className="centered greeting">
+            Good {time.timeOfDay} <Name />
+          </h1>
+          <h2 className="centered date">{time.dateString}</h2>
+        </div>
+      )}
+
+      {showWidgets && (
+        <div className="bento-grid">
+          <div className="bento-col">
+            <DHallTable />
+          </div>
+          <div className="bento-col center-col">
+            <WeatherTable />
+            <SneakyLinksTable />
+          </div>
+          <div className="bento-col">
+            <Carousel />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
