@@ -6,6 +6,8 @@ export enum StorageKeys {
   WIDGET = "campusWidget",
   NAME = "name",
   DHALL = "dhall",
+  CUSTOM_BG = "customBg",
+  ACTIVE_WIDGETS = "activeWidgets"
 }
 
 type Storage = {
