@@ -7,7 +7,13 @@ export enum StorageKeys {
   NAME = "name",
   DHALL = "dhall",
   CUSTOM_BG = "customBg",
-  ACTIVE_WIDGETS = "activeWidgets"
+  ACTIVE_WIDGETS = "activeWidgets",
+  CUSTOM_LINKS = "customLinks",
+  REMOVED_QUICK_LINKS = "removedQuickLinks",
+  SEARCH_HISTORY = "searchHistory",
+  WEATHER_UNIT = "weatherUnit",
+  WEATHER_DAILY_AVERAGES = "weatherDailyAverages",
+  WIDGET_LAYOUT = "widgetLayout"
 }
 
 type Storage = {

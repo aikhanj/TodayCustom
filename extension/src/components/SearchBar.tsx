@@ -1,51 +1,60 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { FiSearch } from "react-icons/fi";
 import "./SearchBar.css";
+import { StorageKeys, useStorage } from "../context/StorageContext";
 
-type SearchMode = "google" | "directory";
+const MAX_HISTORY_ITEMS = 8;
 
 const SearchBar: React.FC = () => {
-  const [mode, setMode] = useState<SearchMode>("google");
+  const storage = useStorage();
   const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+
+  useEffect(() => {
+    const savedHistory = storage.getLocalStorage(StorageKeys.SEARCH_HISTORY);
+    if (!savedHistory) return;
+
+    try {
+      const parsed = JSON.parse(savedHistory);
+      if (Array.isArray(parsed)) {
+        setSearchHistory(parsed.filter((item) => typeof item === "string").slice(0, MAX_HISTORY_ITEMS));
+      }
+    } catch {
+      setSearchHistory([]);
+    }
+  }, [storage]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
 
-    if (mode === "google") {
-      window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-    } else {
-      window.location.href = `https://search.princeton.edu/search/people?f=${encodeURIComponent(query)}`;
-    }
+    const updatedHistory = [
+      trimmedQuery,
+      ...searchHistory.filter((item) => item.toLowerCase() !== trimmedQuery.toLowerCase()),
+    ].slice(0, MAX_HISTORY_ITEMS);
+    setSearchHistory(updatedHistory);
+    storage.setLocalStorage(StorageKeys.SEARCH_HISTORY, JSON.stringify(updatedHistory));
+
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(trimmedQuery)}`;
+    window.location.href = searchUrl;
   };
 
   return (
-    <div className="search-container">
-      <div className="search-tabs">
-        <button
-          className={`search-tab ${mode === "google" ? "active" : ""}`}
-          onClick={() => setMode("google")}
-        >
-          Google
-        </button>
-        <button
-          className={`search-tab ${mode === "directory" ? "active" : ""}`}
-          onClick={() => setMode("directory")}
-        >
-          Directory
-        </button>
-      </div>
+    <div className={`search-container ${isFocused ? "focused" : ""}`}>
       <form className="search-form" onSubmit={handleSearch}>
+        <FiSearch className="search-icon" />
         <input
           type="text"
           className="search-input"
-          placeholder={mode === "google" ? "Search the web..." : "Search Princeton Directory..."}
+          placeholder="Search the web..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           autoFocus
         />
-        <button type="submit" className="search-button">
-          Search
-        </button>
       </form>
     </div>
   );

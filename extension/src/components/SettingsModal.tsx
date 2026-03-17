@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { StorageKeys, useStorage } from "../context/StorageContext";
 import "./SettingsModal.css";
 
@@ -10,129 +10,176 @@ type Props = {
   availableWidgets: { id: string; name: string }[];
 };
 
-const SettingsModal: React.FC<Props> = ({ isOpen, onClose, activeWidgets, toggleWidget, availableWidgets }) => {
+const SettingsModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  activeWidgets,
+  toggleWidget,
+  availableWidgets,
+}) => {
   const storage = useStorage();
-  const [bgUrl, setBgUrl] = useState("");
   const [activeTab, setActiveTab] = useState<"widgets" | "background">("widgets");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [customBackground, setCustomBackground] = useState(() => {
+    return storage.getLocalStorage(StorageKeys.CUSTOM_BG) || "";
+  });
+  const [isRendered, setIsRendered] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
 
-  if (!isOpen) return null;
-
-  const handleBgUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (bgUrl) {
-      storage.setLocalStorage(StorageKeys.CUSTOM_BG, bgUrl);
-      window.location.reload(); // Reload to apply
+  useEffect(() => {
+    if (isOpen) {
+      setIsRendered(true);
+      setIsClosing(false);
+      return;
     }
+
+    if (isRendered) {
+      setIsClosing(true);
+      const timeout = window.setTimeout(() => {
+        setIsRendered(false);
+        setIsClosing(false);
+      }, 220);
+      return () => window.clearTimeout(timeout);
+    }
+  }, [isOpen, isRendered]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isRendered) return null;
+
+  const applyBackground = (url: string) => {
+    if (url) {
+      document.body.style.backgroundImage = `url('${url}')`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center center";
+      document.body.style.backgroundAttachment = "fixed";
+      return;
+    }
+    document.body.style.backgroundImage = "";
+    document.body.style.backgroundSize = "";
+    document.body.style.backgroundPosition = "";
+    document.body.style.backgroundAttachment = "";
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        try {
-          storage.setLocalStorage(StorageKeys.CUSTOM_BG, base64String);
-          window.location.reload();
-        } catch (err) {
-          alert("Image too large! Please use a smaller image or an Image URL.");
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleCustomBackground = (url: string) => {
+    storage.setLocalStorage(StorageKeys.CUSTOM_BG, url);
+    setCustomBackground(url);
+    applyBackground(url);
+  };
+
+  const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result) return;
+      handleCustomBackground(result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleClearBg = () => {
     window.localStorage.removeItem(StorageKeys.CUSTOM_BG);
-    window.location.reload();
+    setCustomBackground("");
+    applyBackground("");
   };
 
   return (
-    <div className="settings-overlay">
-      <div className="settings-popup">
-        <button className="settings-close-button" onClick={onClose}>×</button>
-        
-        <div className="settings-sidebar">
-          <button 
-            className={`settings-side-button ${activeTab === "widgets" ? "active" : ""}`}
-            onClick={() => setActiveTab("widgets")}
-          >
-            Widgets
-          </button>
-          <button 
-            className={`settings-side-button ${activeTab === "background" ? "active" : ""}`}
-            onClick={() => setActiveTab("background")}
-          >
-            Background
-          </button>
+    <div className={`settings-modal-overlay ${isClosing ? "closing" : ""}`} onClick={onClose}>
+      <div
+        className={`settings-modal ${isClosing ? "closing" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Customization settings"
+      >
+        <button className="settings-modal-close" onClick={onClose} aria-label="Close settings">
+          ×
+        </button>
+
+        <div className="settings-modal-head">
+          <h4 className="settings-modal-title">Customize</h4>
+          <div className="settings-modal-segmented" role="tablist" aria-label="Settings sections">
+            <button
+              className={`settings-modal-segment ${activeTab === "widgets" ? "active" : ""}`}
+              onClick={() => setActiveTab("widgets")}
+              role="tab"
+              aria-selected={activeTab === "widgets"}
+            >
+              Widgets
+            </button>
+            <button
+              className={`settings-modal-segment ${activeTab === "background" ? "active" : ""}`}
+              onClick={() => setActiveTab("background")}
+              role="tab"
+              aria-selected={activeTab === "background"}
+            >
+              Background
+            </button>
+          </div>
         </div>
 
-        <div className="settings-box">
+        <div className="settings-modal-content">
           {activeTab === "widgets" && (
-            <div className="settings-section">
-              <h4>Manage Widgets</h4>
-              <div className="widget-toggles">
-                {availableWidgets.map(widget => (
-                  <label key={widget.id} className="widget-toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={activeWidgets.includes(widget.id)}
-                      onChange={() => toggleWidget(widget.id)}
-                    />
-                    <span>{widget.name}</span>
-                  </label>
-                ))}
+            <section className="settings-panel" aria-label="Manage widgets">
+              <p className="settings-panel-subtitle">Choose what appears on your dashboard.</p>
+              <div className="settings-widget-group">
+                {availableWidgets.map((widget) => {
+                  const checked = activeWidgets.includes(widget.id);
+                  return (
+                    <label key={widget.id} className="settings-widget-row">
+                      <span className="settings-widget-name">{widget.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleWidget(widget.id)}
+                        className="settings-widget-toggle"
+                      />
+                    </label>
+                  );
+                })}
               </div>
-            </div>
+            </section>
           )}
 
           {activeTab === "background" && (
-            <div className="settings-section">
-              <h4>Custom Background</h4>
-              
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "#555" }}>Upload Image (PNG/JPG)</label>
-                <input 
-                  type="file" 
-                  accept="image/png, image/jpeg" 
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  style={{ display: "none" }}
+            <section className="settings-panel" aria-label="Background options">
+              <p className="settings-panel-subtitle">Upload your own image for the background.</p>
+              <div className="settings-upload-card">
+                <label className="settings-upload-label" htmlFor="custom-bg-upload">
+                  Choose Image
+                </label>
+                <input
+                  id="custom-bg-upload"
+                  type="file"
+                  accept="image/*"
+                  className="settings-upload-input"
+                  onChange={handleBackgroundUpload}
                 />
-                <button 
-                  className="settings-submit" 
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ width: "100%", backgroundColor: "#333" }}
-                >
-                  Choose File
-                </button>
+                {customBackground && <span className="settings-upload-hint">Custom image applied.</span>}
               </div>
 
-              <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "14px" }}>OR</div>
-
-              <form onSubmit={handleBgUrlSubmit} className="timer-settings form">
-                <label style={{ fontSize: "14px", color: "#555", marginBottom: "8px", display: "block" }}>Image URL</label>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <input
-                    type="text"
-                    placeholder="https://example.com/image.png"
-                    value={bgUrl}
-                    onChange={(e) => setBgUrl(e.target.value)}
-                    style={{ flex: 1, padding: "10px", borderRadius: "8px", border: "1px solid #ccc" }}
-                  />
-                  <button type="submit" className="settings-submit">Set</button>
-                </div>
-              </form>
-
-              <button 
-                className="settings-submit" 
+              <button
+                type="button"
+                className="settings-action-button settings-action-secondary"
                 onClick={handleClearBg}
-                style={{ marginTop: "30px", backgroundColor: "#dc3545", width: "100%" }}
               >
-                Reset to Default Background
+                Use Default
               </button>
-            </div>
+            </section>
           )}
         </div>
       </div>
