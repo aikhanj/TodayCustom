@@ -8,6 +8,8 @@ type Props = {
   activeWidgets: string[];
   toggleWidget: (id: string) => void;
   availableWidgets: { id: string; name: string }[];
+  columnCount: 2 | 3;
+  onColumnCountChange: (count: 2 | 3) => void;
 };
 
 const SettingsModal: React.FC<Props> = ({
@@ -16,6 +18,8 @@ const SettingsModal: React.FC<Props> = ({
   activeWidgets,
   toggleWidget,
   availableWidgets,
+  columnCount,
+  onColumnCountChange,
 }) => {
   const storage = useStorage();
   const [activeTab, setActiveTab] = useState<"widgets" | "background">("widgets");
@@ -151,6 +155,28 @@ const SettingsModal: React.FC<Props> = ({
                     </label>
                   );
                 })}
+              </div>
+
+              <p className="settings-panel-subtitle">Pick your desktop column layout.</p>
+              <div className="settings-layout-toggle" role="radiogroup" aria-label="Widget columns">
+                <button
+                  type="button"
+                  className={`settings-layout-option ${columnCount === 2 ? "active" : ""}`}
+                  onClick={() => onColumnCountChange(2)}
+                  role="radio"
+                  aria-checked={columnCount === 2}
+                >
+                  2 columns
+                </button>
+                <button
+                  type="button"
+                  className={`settings-layout-option ${columnCount === 3 ? "active" : ""}`}
+                  onClick={() => onColumnCountChange(3)}
+                  role="radio"
+                  aria-checked={columnCount === 3}
+                >
+                  3 columns (default)
+                </button>
               </div>
             </section>
           )}

@@ -22,35 +22,51 @@ const TIGER_LINKS: LinkItem[] = [
     id: "canvas",
     name: "Canvas",
     url: "https://princeton.instructure.com/",
-    iconUrl: "https://logo.clearbit.com/instructure.com",
+    iconUrl: "https://www.instructure.com/sites/default/files/image/2025-07/canvas_icon_color_rgb.png",
   },
   {
     id: "gradescope",
     name: "Gradescope",
     url: "https://www.gradescope.com/",
-    iconUrl: "https://logo.clearbit.com/gradescope.com",
+    iconUrl: "https://www.google.com/s2/favicons?sz=64&domain=gradescope.com",
   },
   {
     id: "gmail",
     name: "Gmail",
     url: "https://mail.google.com/mail/u/0/?hd=princeton.edu",
-    iconUrl: "https://cdn.simpleicons.org/gmail",
+    iconUrl: "https://www.google.com/s2/favicons?sz=64&domain=mail.google.com",
+  },
+  {
+    id: "gcal",
+    name: "GCal",
+    url: "https://calendar.google.com/",
+    iconUrl: "https://cdn.prod.website-files.com/6737568a4ac417efeb387e5a/677d0808823113a719375051_5fae8e035b232cb287900b91_Calendar_Product_Icon.svg",
   },
   {
     id: "tigerhub",
     name: "TigerHub",
     url: "https://tigerhub.princeton.edu/",
-    iconUrl: "https://logo.clearbit.com/princeton.edu",
+    iconUrl: "https://www.google.com/s2/favicons?sz=64&domain=tigerhub.princeton.edu",
   },
   {
     id: "tigersnatch",
     name: "TigerSnatch",
     url: "https://tigersnatch.com/",
-    iconUrl: "https://logo.clearbit.com/tigersnatch.com",
+    iconUrl: "https://www.google.com/s2/favicons?sz=64&domain=tigersnatch.com",
   },
 ];
 
 const MAX_LINKS = 10;
+
+const SIMPLE_ICON_BY_NAME: Record<string, string> = {
+  canvas: "https://www.instructure.com/sites/default/files/image/2025-07/canvas_icon_color_rgb.png",
+  gmail: "https://www.google.com/s2/favicons?sz=64&domain=mail.google.com",
+  gcal: "https://cdn.prod.website-files.com/6737568a4ac417efeb387e5a/677d0808823113a719375051_5fae8e035b232cb287900b91_Calendar_Product_Icon.svg",
+  calendar: "https://cdn.prod.website-files.com/6737568a4ac417efeb387e5a/677d0808823113a719375051_5fae8e035b232cb287900b91_Calendar_Product_Icon.svg",
+  "google calendar": "https://cdn.prod.website-files.com/6737568a4ac417efeb387e5a/677d0808823113a719375051_5fae8e035b232cb287900b91_Calendar_Product_Icon.svg",
+  gradescope: "https://www.google.com/s2/favicons?sz=64&domain=gradescope.com",
+  youtube: "https://www.google.com/s2/favicons?sz=64&domain=youtube.com",
+};
 
 const getAvatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -59,6 +75,10 @@ const getAvatarUrl = (name: string) =>
 
 const getFaviconUrl = (link: Pick<LinkItem, "name" | "url" | "iconUrl">) => {
   if (link.iconUrl) return link.iconUrl;
+  const normalizedName = link.name.trim().toLowerCase();
+  if (normalizedName in SIMPLE_ICON_BY_NAME) {
+    return SIMPLE_ICON_BY_NAME[normalizedName];
+  }
   return getAvatarUrl(link.name);
 };
 

@@ -13,7 +13,8 @@ export enum StorageKeys {
   SEARCH_HISTORY = "searchHistory",
   WEATHER_UNIT = "weatherUnit",
   WEATHER_DAILY_AVERAGES = "weatherDailyAverages",
-  WIDGET_LAYOUT = "widgetLayout"
+  WIDGET_LAYOUT = "widgetLayout",
+  WIDGET_COLUMN_COUNT = "widgetColumnCount"
 }
 
 type Storage = {

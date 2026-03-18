@@ -339,15 +339,25 @@ h3, h4 {
 
 .command-center-widgets {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 20px;
   width: 100%;
-  max-width: 1120px;
+  max-width: 1520px;
   margin: 0 auto;
   padding: 0 20px 48px 20px;
   position: relative;
   z-index: 10;
+}
+
+.command-center-widgets.columns-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 1120px;
+}
+
+.command-center-widgets.columns-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 1520px;
 }
 
 .widget-arrange-toolbar {
@@ -445,10 +455,10 @@ h3, h4 {
   position: relative;
   border-radius: var(--radius-lg);
   transition:
-    transform 320ms var(--ease-apple),
-    box-shadow 320ms var(--ease-apple),
-    border-color 320ms var(--ease-apple),
-    background 320ms var(--ease-apple);
+    transform 220ms var(--ease-apple),
+    box-shadow 220ms var(--ease-apple),
+    border-color 220ms var(--ease-apple),
+    background 220ms var(--ease-apple);
 }
 
 .widget-slot.is-dragging {
@@ -462,7 +472,7 @@ h3, h4 {
 }
 
 .widget-slot.is-snapped {
-  animation: widgetSnap 420ms var(--ease-heavy);
+  animation: widgetSnap 280ms var(--ease-heavy);
 }
 
 .widget-slot-badge {
@@ -589,8 +599,13 @@ button:disabled {
 
 body {
   background-color: var(--bg-main);
-  background-image: radial-gradient(ellipse at 50% 0%, rgba(231, 117, 0, 0.06) 0%, transparent 60%);
-  background-size: 100vw 100vh;
+  background-image:
+    linear-gradient(180deg, rgba(8, 8, 10, 0.72) 0%, rgba(8, 8, 10, 0.84) 100%),
+    radial-gradient(ellipse at 50% 0%, rgba(231, 117, 0, 0.14) 0%, rgba(0, 0, 0, 0) 58%),
+    url("../public/bg.png");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
   background-attachment: fixed;
   color: var(--text-primary) !important;
   min-height: 100vh;
@@ -652,6 +667,20 @@ body {
 
 .today-news-widget {
   min-height: 220px;
+}
+
+.today-news-source {
+  align-self: flex-start;
+  margin-bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(231, 117, 0, 0.35);
+  background: rgba(231, 117, 0, 0.12);
+  color: rgba(255, 231, 207, 0.95);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .today-news-link {

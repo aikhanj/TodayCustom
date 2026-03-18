@@ -35,6 +35,9 @@ const TodayNewsWidget: React.FC = () => {
 
   return (
     <div className="widget-card today-news-widget">
+      <div className="today-news-source" aria-label="News source">
+        From The Daily Princetonian
+      </div>
       <div className="widget-content">{rows}</div>
     </div>
   );

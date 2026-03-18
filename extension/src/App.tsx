@@ -26,15 +26,29 @@ const AVAILABLE_WIDGETS = [
 
 const DEFAULT_WIDGETS = ["dhall", "weather", "today"];
 const ALLOWED_WIDGET_IDS = new Set(AVAILABLE_WIDGETS.map((widget) => widget.id));
-type WidgetColumn = "left" | "right";
+const ALL_WIDGET_COLUMNS = ["left", "middle", "right"] as const;
+const MIN_WIDGET_COLUMNS = 2;
+const MAX_WIDGET_COLUMNS = 3;
+
+type WidgetColumn = (typeof ALL_WIDGET_COLUMNS)[number];
 type WidgetLayout = Record<WidgetColumn, string[]>;
 
-const WIDGET_COLUMNS: WidgetColumn[] = ["left", "right"];
+const getActiveColumns = (columnCount: number): WidgetColumn[] => {
+  const safeCount = Math.max(MIN_WIDGET_COLUMNS, Math.min(MAX_WIDGET_COLUMNS, columnCount));
+  return safeCount === 2 ? ["left", "right"] : ["left", "middle", "right"];
+};
 
-const buildDefaultLayout = (widgets: string[]): WidgetLayout => {
-  const layout: WidgetLayout = { left: [], right: [] };
+const createEmptyLayout = (): WidgetLayout => ({
+  left: [],
+  middle: [],
+  right: [],
+});
+
+const buildDefaultLayout = (widgets: string[], columnCount: number): WidgetLayout => {
+  const layout = createEmptyLayout();
+  const activeColumns = getActiveColumns(columnCount);
   widgets.forEach((widgetId, index) => {
-    const targetColumn: WidgetColumn = index % 2 === 0 ? "left" : "right";
+    const targetColumn = activeColumns[index % activeColumns.length];
     layout[targetColumn].push(widgetId);
   });
   return layout;
@@ -42,27 +56,40 @@ const buildDefaultLayout = (widgets: string[]): WidgetLayout => {
 
 const normalizeWidgetLayout = (
   layout: Partial<WidgetLayout> | null,
-  activeWidgets: string[]
+  activeWidgets: string[],
+  columnCount: number
 ): WidgetLayout => {
+  const activeColumns = getActiveColumns(columnCount);
   const activeSet = new Set(activeWidgets);
   const seen = new Set<string>();
 
-  const sanitize = (ids?: string[]) =>
-    (ids || []).filter((id) => {
+  const normalized = createEmptyLayout();
+
+  // Keep explicit user ordering for currently active columns.
+  activeColumns.forEach((column) => {
+    normalized[column] = (layout?.[column] || []).filter((id) => {
       if (!activeSet.has(id) || seen.has(id)) return false;
       seen.add(id);
       return true;
     });
+  });
 
-  const normalized: WidgetLayout = {
-    left: sanitize(layout?.left),
-    right: sanitize(layout?.right),
-  };
+  // Re-home widgets from inactive columns + any new/missing widgets.
+  const extras = ALL_WIDGET_COLUMNS.filter((column) => !activeColumns.includes(column))
+    .flatMap((column) => layout?.[column] || [])
+    .filter((id) => activeSet.has(id) && !seen.has(id));
 
   activeWidgets.forEach((id) => {
+    if (!seen.has(id)) {
+      extras.push(id);
+    }
+  });
+
+  extras.forEach((id) => {
     if (seen.has(id)) return;
-    const targetColumn =
-      normalized.left.length <= normalized.right.length ? "left" : "right";
+    const targetColumn = activeColumns.reduce((shortest, candidate) =>
+      normalized[candidate].length < normalized[shortest].length ? candidate : shortest
+    );
     normalized[targetColumn].push(id);
     seen.add(id);
   });
@@ -79,6 +106,10 @@ function App() {
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [snappedWidgetId, setSnappedWidgetId] = useState<string | null>(null);
+  const [columnCount, setColumnCount] = useState<2 | 3>(() => {
+    const saved = storage.getLocalStorage(StorageKeys.WIDGET_COLUMN_COUNT);
+    return saved === "2" ? 2 : 3;
+  });
   
   const [activeWidgets, setActiveWidgets] = useState<string[]>(() => {
     const saved = storage.getLocalStorage(StorageKeys.ACTIVE_WIDGETS);
@@ -95,13 +126,13 @@ function App() {
   });
   const [widgetLayout, setWidgetLayout] = useState<WidgetLayout>(() => {
     const saved = storage.getLocalStorage(StorageKeys.WIDGET_LAYOUT);
-    if (!saved) return buildDefaultLayout(activeWidgets);
+    if (!saved) return buildDefaultLayout(activeWidgets, columnCount);
 
     try {
       const parsed = JSON.parse(saved) as Partial<WidgetLayout>;
-      return normalizeWidgetLayout(parsed, activeWidgets);
+      return normalizeWidgetLayout(parsed, activeWidgets, columnCount);
     } catch {
-      return buildDefaultLayout(activeWidgets);
+      return buildDefaultLayout(activeWidgets, columnCount);
     }
   });
 
@@ -130,12 +161,16 @@ function App() {
   }, [activeWidgets]);
 
   useEffect(() => {
-    setWidgetLayout((prev) => normalizeWidgetLayout(prev, activeWidgets));
-  }, [activeWidgets]);
+    setWidgetLayout((prev) => normalizeWidgetLayout(prev, activeWidgets, columnCount));
+  }, [activeWidgets, columnCount]);
 
   useEffect(() => {
     storage.setLocalStorage(StorageKeys.WIDGET_LAYOUT, JSON.stringify(widgetLayout));
   }, [widgetLayout]);
+
+  useEffect(() => {
+    storage.setLocalStorage(StorageKeys.WIDGET_COLUMN_COUNT, String(columnCount));
+  }, [columnCount]);
 
   const toggleWidget = (id: string) => {
     if (!ALLOWED_WIDGET_IDS.has(id)) return;
@@ -163,14 +198,26 @@ function App() {
     if (!fromId) return;
 
     setWidgetLayout((prev) => {
-      const next = normalizeWidgetLayout(prev, activeWidgets);
-      next.left = next.left.filter((id) => id !== fromId);
-      next.right = next.right.filter((id) => id !== fromId);
+      const next = normalizeWidgetLayout(prev, activeWidgets, columnCount);
+      let fromColumn: WidgetColumn | null = null;
+      let fromIndex = -1;
 
-      const insertionIndex = Math.max(
-        0,
-        Math.min(toIndex, next[toColumn].length)
-      );
+      for (const column of ALL_WIDGET_COLUMNS) {
+        const index = next[column].indexOf(fromId);
+        if (index === -1 || fromColumn) continue;
+        fromColumn = column;
+        fromIndex = index;
+      }
+
+      if (!fromColumn) return next;
+
+      next[fromColumn] = next[fromColumn].filter((id) => id !== fromId);
+
+      let insertionIndex = Math.max(0, Math.min(toIndex, next[toColumn].length));
+      if (fromColumn === toColumn && fromIndex < toIndex) {
+        insertionIndex = Math.max(0, insertionIndex - 1);
+      }
+
       next[toColumn].splice(insertionIndex, 0, fromId);
       return next;
     });
@@ -180,6 +227,7 @@ function App() {
 
   const feedbackMailto =
     "mailto:aj5828@princeton.edu?subject=TodayCustom%20Feedback%20%28Free%20Coffee%29&body=Hey%20Khan%2C%0A%0AHere%20is%20my%20feedback%20for%20TodayCustom%3A%0A-%20%0A-%20%0A%0AThanks!";
+  const activeColumns = getActiveColumns(columnCount);
 
   return (
     <div className="App">
@@ -216,8 +264,10 @@ function App() {
           </div>
         )}
 
-        <div className={`command-center-widgets ${isArrangeMode ? "is-arranging" : ""}`}>
-          {WIDGET_COLUMNS.map((column) => (
+        <div
+          className={`command-center-widgets columns-${columnCount} ${isArrangeMode ? "is-arranging" : ""}`}
+        >
+          {activeColumns.map((column) => (
             <div
               key={column}
               className={[
@@ -264,6 +314,7 @@ function App() {
                   onDragOver={(e) => {
                     if (!isArrangeMode) return;
                     e.preventDefault();
+                    e.stopPropagation();
                     if (dropTargetKey !== `${column}:${widgetId}`) {
                       setDropTargetKey(`${column}:${widgetId}`);
                     }
@@ -271,9 +322,12 @@ function App() {
                   onDrop={(e) => {
                     if (!isArrangeMode) return;
                     e.preventDefault();
+                    e.stopPropagation();
                     const draggedId = e.dataTransfer.getData("text/plain");
                     const targetIndex = widgetLayout[column].indexOf(widgetId);
-                    moveWidget(draggedId, column, targetIndex);
+                    const slotRect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                    const isDropAfter = e.clientY >= slotRect.top + slotRect.height / 2;
+                    moveWidget(draggedId, column, targetIndex + (isDropAfter ? 1 : 0));
                     setDraggingWidgetId(null);
                     setDropTargetKey(null);
                   }}
@@ -305,6 +359,8 @@ function App() {
         activeWidgets={activeWidgets}
         toggleWidget={toggleWidget}
         availableWidgets={AVAILABLE_WIDGETS}
+        columnCount={columnCount}
+        onColumnCountChange={setColumnCount}
       />
 
       <a

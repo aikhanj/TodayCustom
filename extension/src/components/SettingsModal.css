@@ -207,6 +207,43 @@
   transform: translateX(20px);
 }
 
+.settings-layout-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px;
+}
+
+.settings-layout-option {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary, #a1a1aa);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms var(--ease-apple), border-color 160ms var(--ease-apple), color 160ms var(--ease-apple), transform 160ms var(--ease-apple);
+}
+
+.settings-layout-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #ffffff);
+}
+
+.settings-layout-option:active {
+  transform: scale(0.98);
+}
+
+.settings-layout-option.active {
+  background: rgba(231, 117, 0, 0.2);
+  border-color: rgba(231, 117, 0, 0.7);
+  color: #fff;
+}
+
 .settings-upload-card {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
